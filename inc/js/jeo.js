@@ -352,7 +352,6 @@ var jeo = {};
 
 	jeo.runCallbacks = function(name, args) {
 		if(!jeo.callbacks[name]) {
-			console.log('A JEO callback tried to run, but wasn\'t initialized');
 			return false;
 		}
 		if(!jeo.callbacks[name].length)
