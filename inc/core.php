@@ -565,8 +565,9 @@ class JEO {
 		$data['legend'] = $this->get_map_legend($map_id);
 		if($post->post_content)
 			$data['legend_full'] = '<h2>' . $data['title'] . '</h2>' . apply_filters('the_content', $post->post_content);
+		$data = apply_filters('jeo_map_data', $data, $post);
 		wp_reset_postdata();
-		return apply_filters('jeo_map_data', $data, $post);
+		return $data;
 	}
 
 	function get_map_layers($map_id = false) {
@@ -655,13 +656,13 @@ class JEO {
 		if(get_post_type($group_id) != 'map-group')
 			return;
 		$group_data = get_post_meta($group_id, 'mapgroup_data', true);
-    if(is_array($group_data['maps'])) {
-      foreach($group_data['maps'] as $map) {
-        $map_id = $map['id'];
-        $data['maps'][$map_id] = $map;
-        $data['maps'][$map_id] += $this->get_map_data($map['id']);
-      }
-    }
+		if(is_array($group_data['maps'])) {
+			foreach($group_data['maps'] as $map) {
+				$map_id = $map['id'];
+				$data['maps'][$map_id] = $map;
+				$data['maps'][$map_id] += $this->get_map_data($map['id']);
+			}
+		}
 		return apply_filters('jeo_mapgroup_data', $data, $post);
 	}
 
@@ -684,7 +685,7 @@ class JEO {
 	function get_mapgroup_json_data($group_id = false) {
 		$group_id = $group_id ? $group_id : $_REQUEST['group_id'];
 		$data = json_encode($this->get_mapgroup_data($group_id));
-		header('Content Type: application/json');
+		header('Content-Type: application/json');
 		echo $data;
 		exit;
 	}
@@ -692,7 +693,7 @@ class JEO {
 	function get_map_json_data($map_id = false) {
 		$map_id = $map_id ? $map_id : $_REQUEST['map_id'];
 		$data = json_encode($this->get_map_data($map_id));
-		header('Content Type: application/json');
+		header('Content-Type: application/json');
 		echo $data;
 		exit;
 	}
