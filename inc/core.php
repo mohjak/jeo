@@ -84,23 +84,23 @@ class JEO {
 
 		// LEAFLET or CARTODB
 		// If map contains CartoDB layer, use cartodb lib (includes own leaflet)
-		$layers = $this->get_map_layers();
-		$cartodb = false;
-		if($layers) {
-			foreach($layers as $layer) {
-				if($layer['type'] == 'cartodb')
-					$cartodb = true;
-			}
-		}
+		$cartodb = true;
+		// $layers = jeo_get_map_layers();
+		// if($layers) {
+		// 	foreach($layers as $layer) {
+		// 		if($layer['type'] == 'cartodb')
+		// 			$cartodb = true;
+		// 	}
+		// }
 
 		if($cartodb || is_admin()) {
-            
-			wp_register_script('leaflet', get_template_directory_uri() . '/lib/cartodb.js', array(), '3.3.05');
-			wp_enqueue_style('cartodb', get_template_directory_uri() . '/lib/cartodb.css');
+
+			wp_register_script('leaflet', get_template_directory_uri() . '/lib/cartodb.js', array(), '3.15.10');
+			wp_enqueue_style('cartodb', get_template_directory_uri() . '/lib/cartodb.css', array(), '3.15.10');
 
 		} else {
 
-			wp_register_script('leaflet', get_template_directory_uri() . '/lib/leaflet/leaflet.js', array(), '0.7');
+			wp_register_script('leaflet', get_template_directory_uri() . '/lib/leaflet/leaflet.js', array(), '0.7.3');
             wp_enqueue_style('leaflet', get_template_directory_uri() . '/lib/leaflet/leaflet.css');
 
 		}
@@ -110,8 +110,8 @@ class JEO {
 		wp_enqueue_style('leaflet-ie');
 
 		// MAPBOX
-		wp_register_script('mapbox-js', get_template_directory_uri() . '/lib/mapbox2/mapbox.standalone.js', array('leaflet'), '2.1.9');
-		wp_enqueue_style('mapbox-js', get_template_directory_uri() . '/lib/mapbox2/mapbox.standalone.css');
+		wp_register_script('mapbox-js', get_template_directory_uri() . '/lib/mapbox/mapbox.standalone.js', array('leaflet'), '2.2.1');
+		wp_enqueue_style('mapbox-js', get_template_directory_uri() . '/lib/mapbox/mapbox.standalone.css');
 
 		wp_register_script('imagesloaded', get_template_directory_uri() . '/lib/jquery.imagesloaded.min.js', array('jquery'));
 		wp_register_script('underscore', get_template_directory_uri() . '/lib/underscore-min.js', array(), '1.4.3');
@@ -119,7 +119,7 @@ class JEO {
 		/*
 		 * Local
 		 */
-		wp_enqueue_script('jeo', get_template_directory_uri() . '/inc/js/jeo.js', array('mapbox-js', 'underscore', 'jquery'), '0.4.3');
+		wp_enqueue_script('jeo', get_template_directory_uri() . '/inc/js/jeo.js', array('mapbox-js', 'underscore', 'jquery'), '0.4.5');
 
 		wp_enqueue_script('jeo.groups', get_template_directory_uri() . '/inc/js/groups.js', array('jeo'), '0.2.7');
 
@@ -135,7 +135,12 @@ class JEO {
 
 		wp_localize_script('jeo', 'jeo_localization', array(
 			'ajaxurl' => admin_url('admin-ajax.php'),
+			'ssl' => is_ssl(),
 			'more_label' => __('More', 'jeo')
+		));
+
+		wp_localize_script('jeo', 'jeo_settings', array(
+			'mapbox_access_token' => $this->mapbox_access_token()
 		));
 
 		wp_localize_script('jeo.geocode', 'jeo_labels', array(
@@ -165,7 +170,7 @@ class JEO {
 		/*
 		 * Map
 		 */
-		$labels = array( 
+		$labels = array(
 			'name' => __('Maps', 'jeo'),
 			'singular_name' => __('Map', 'jeo'),
 			'add_new' => __('Add new map', 'jeo'),
@@ -198,7 +203,7 @@ class JEO {
 		/*
 		 * Map group
 		 */
-		$labels = array( 
+		$labels = array(
 			'name' => __('Map groups', 'jeo'),
 			'singular_name' => __('Map group', 'jeo'),
 			'add_new' => __('Add new map group', 'jeo'),
@@ -212,7 +217,7 @@ class JEO {
 			'menu_name' => __('Map groups', 'jeo')
 		);
 
-		$args = array( 
+		$args = array(
 			'labels' => $labels,
 			'hierarchical' => true,
 			'description' => __('JEO Map Groups', 'jeo'),
@@ -238,6 +243,7 @@ class JEO {
 		$custom = get_post_types(array('public' => true, '_builtin' => false));
 		$this->mapped_post_types = $custom + array('post');
 		unset($this->mapped_post_types['map']);
+		unset($this->mapped_post_types['map-layer']);
 		unset($this->mapped_post_types['map-group']);
 		return apply_filters('jeo_mapped_post_types', $this->mapped_post_types);
 	}
@@ -266,6 +272,15 @@ class JEO {
 		else
 			$use_hash = true;
 		return apply_filters('jeo_use_hash', $use_hash);
+	}
+
+	function mapbox_access_token() {
+		$options = $this->get_options();
+		if(isset($options['mapbox']))
+			$access_token = $options['mapbox']['access_token'];
+		else
+			$access_token = false;
+		return apply_filters('jeo_mapbox_access_token', $access_token);
 	}
 
 	function query_vars($vars) {
@@ -302,7 +317,7 @@ class JEO {
 				) ";
 
 		// MAPGROUP
-		} else {
+		} elseif(get_post_type($map_id) == 'map-group') {
 
 			$groupdata = get_post_meta($map_id, 'mapgroup_data', true);
 
@@ -310,7 +325,7 @@ class JEO {
 				AND (
 			";
 
-			if(is_array($groupdata['maps'])) {
+			if(isset($groupdata['maps']) && is_array($groupdata['maps'])) {
 				foreach($groupdata['maps'] as $m) {
 
 					$c_map_id = $m['id'];
@@ -520,10 +535,11 @@ class JEO {
 		return json_encode($this->get_map_conf());
 	}
 
-	function get_map_conf() {
+	function get_map_conf($map_id = false) {
 		global $post;
+		$map = $map_id ? get_post($map_id) : $this->map;
 		$conf = array(
-			'postID' => $this->map->ID,
+			'postID' => $map_id ? $map_id :  $this->map->ID,
 			'count' => $this->map_count
 		); // default
 		if(is_post_type_archive('map')) {
@@ -531,7 +547,7 @@ class JEO {
 			$conf['disableHash'] = true;
 			$conf['disableInteraction'] = true;
 		}
-		return apply_filters('jeo_map_conf', $conf, $this->map, $post);
+		return apply_filters('jeo_map_conf', $conf, $map, $post);
 	}
 
 	function mapgroup_conf() {
@@ -563,28 +579,18 @@ class JEO {
 		$data['postID'] = $map_id;
 		$data['title'] = get_the_title($map_id);
 		$data['legend'] = $this->get_map_legend($map_id);
+		$data['layers'] = jeo_get_map_layers($map_id);
+		if($data['base_layer']) {
+			array_unshift($data['layers'], array(
+				'type' => 'tilelayer',
+				'tile_url' => $data['base_layer']['url']
+			));
+		}
 		if($post->post_content)
 			$data['legend_full'] = '<h2>' . $data['title'] . '</h2>' . apply_filters('the_content', $post->post_content);
 		$data = apply_filters('jeo_map_data', $data, $post);
 		wp_reset_postdata();
 		return $data;
-	}
-
-	function get_map_layers($map_id = false) {
-		$map_id = $map_id ? $map_id : $this->map->ID;
-		if(get_post_type($map_id) == 'map-group') {
-			$data = $this->get_mapgroup_data($map_id);
-			$layers = array();
-			if(is_array($data['maps'])) {
-				foreach($data['maps'] as $map) {
-					$layers = array_merge($layers, $map['layers']);
-				}
-			}
-		} else {
-			$data = $this->get_map_data($map_id);
-			$layers = $data['layers'];
-		}
-		return $layers;
 	}
 
 	function get_map_center($map_id = false) {
@@ -603,51 +609,6 @@ class JEO {
 		$map_id = $map_id ? $map_id : $this->map->ID;
 		$map_data= $this->get_map_data($map_id);
 		return $map_data['max_zoom'];
-	}
-
-	function get_mapbox_image($map_id_or_layers = false, $width = 200, $height = 200, $lat = false, $lng = false, $zoom = false) {
-
-		$layers_ids = array();
-		$center = array('lat' => 0, 'lon' => 0);
-
-		if(is_array($map_id_or_layers)) {
-
-			$layer_ids = $map_id_or_layers;
-
-		} else {
-
-			$map_id = $map_id ? $map_id : $this->map->ID;
-
-			$zoom = $zoom ? $zoom : $this->get_map_zoom($map_id);
-
-			if(get_post_type($map_id) == 'map-group') {
-				$mapgroup = $this->get_mapgroup_data($map_id);
-				if(is_array($mapgroup['maps'])) {
-					$map = array_shift($mapgroup['maps']);
-					$map_id = $map['postID'];
-				}
-			}
-
-			$layers = $this->get_map_layers($map_id);
-			$layers_ids = array();
-			if($layers) {
-				foreach($layers as $layer) {
-					if($layer['opts']['filtering'] == 'fixed') {
-						$layers_ids[] = $layer['id'];
-					}
-				}
-			}
-
-			$center = $this->get_map_center($map_id);
-		}
-
-		if(!$zoom)
-			$zoom = 1;
-
-		$lat = $lat ? $lat : $center['lat'];
-		$lng = $lng ? $lng : $center['lon'];
-
-		return 'http://api.tiles.mapbox.com/v3/' . implode(',', $layers_ids) . '/' . $lng . ',' . $lat . ',' . $zoom . '/' . $width . 'x' . $height . '.png';
 	}
 
 	function get_mapgroup_data($group_id = false) {
@@ -718,10 +679,11 @@ class JEO {
 	}
 
 	function fix_qtranslate() {
-		if(function_exists('qtrans_getLanguage')) {
+		if(function_exists('qtranxf_getLanguage')) {
 			add_filter('get_the_date', array($this, 'qtranslate_get_the_date'), 10, 2);
 			add_filter('admin_url', array($this, 'qtranslate_admin_url'), 10, 2);
-			add_action('post_type_archive_link', 'qtrans_convertURL');
+			if(function_exists('qtranxf_convertURL'))
+				add_action('post_type_archive_link', 'qtranxf_convertURL');
 		}
 	}
 
@@ -736,8 +698,8 @@ class JEO {
 
 	// send lang to ajax requests
 	function qtranslate_admin_url($url, $path) {
-		if($path == 'admin-ajax.php' && function_exists('qtrans_getLanguage'))
-			$url .= '?lang=' . qtrans_getLanguage();
+		if($path == 'admin-ajax.php' && function_exists('qtranxf_getLanguage'))
+			$url .= '?lang=' . qtranxf_getLanguage();
 
 		return $url;
 	}
@@ -745,6 +707,7 @@ class JEO {
 
 $jeo = new JEO();
 
+require_once(get_template_directory() . '/inc/layers.php');
 require_once(get_template_directory() . '/inc/markers.php');
 require_once(get_template_directory() . '/inc/ui.php');
 // GeoJSON API
@@ -756,6 +719,9 @@ require_once(get_template_directory() . '/metaboxes/metaboxes.php');
 require_once(get_template_directory() . '/inc/featured.php');
 include_once(get_template_directory() . '/inc/range-slider.php');
 
+// WP API
+include_once(get_template_directory() . '/inc/wp-api.php');
+
 /*
  * JEO functions api
  */
@@ -765,9 +731,14 @@ function jeo_get_options() {
 	return $jeo->get_options();
 }
 
+function jeo_get_mapbox_access_token() {
+	global $jeo;
+	return $jeo->mapbox_access_token();
+}
+
 function jeo_the_query($query) {
 	global $jeo;
-	return $jeo->the_query($query);	
+	return $jeo->the_query($query);
 }
 
 // mapped post types
@@ -828,7 +799,7 @@ function jeo_map_conf() {
 // get ARRAY map conf
 function jeo_get_map_conf($map_id = false) {
 	global $jeo;
-	return $jeo->get_map_conf();
+	return $jeo->get_map_conf($map_id);
 }
 
 // get the map conf
@@ -860,19 +831,9 @@ function jeo_get_map_data($map_id = false) {
 	return $jeo->get_map_data($map_id);
 }
 
-function jeo_get_map_layers($map_id = false) {
-	global $jeo;
-	return $jeo->get_map_layers($map_id);
-}
-
 function jeo_get_map_center($map_id = false) {
 	global $jeo;
 	return $jeo->get_map_center($map_id);
-}
-
-function jeo_get_mapbox_image($map_id = false, $width = 200, $height = 200, $lat = false, $lng = false, $zoom = false) {
-	global $jeo;
-	return $jeo->get_mapbox_image($map_id, $width, $height, $lat, $lng, $zoom);
 }
 
 function jeo_get_map_zoom($map_id = false) {
