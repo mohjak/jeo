@@ -3,143 +3,253 @@
 require_once(get_template_directory() . '/inc/admin/settings.php');
 require_once(get_template_directory() . '/inc/core.php');
 require_once(get_template_directory() . '/inc/share-widget.php');
-
-if(!isset($content_width))
-	$content_width = 760;
+require_once(STYLESHEETPATH . '/inc/advanced-navigation.php');
 
 /*
- * Theme setup
+ * Clears JEO default front-end styles and scripts
  */
-function jeo_setup() {
+function jeo_blank_scripts() {
 
-	add_theme_support('automatic-feed-links');
-	add_theme_support('post-thumbnails');
+	// deregister jeo styles
+	wp_deregister_style('jeo-main');
+
+  // deregister jeo site frontend scripts
+  wp_deregister_script('jeo-site');
+
+}
+add_action('wp_enqueue_scripts', 'jeo_blank_scripts', 10);
+
+/*
+ * JEO Hooks examples
+ * Most common hooks
+ */
+
+
+
+// Action right after JEO functionality inits
+function jeo_blank_init() {
+  // Action goes here
+}
+add_action('jeo_init', 'jeo_blank_init');
+
+// Hook scripts after JEO scripts has been initialized
+function jeo_blank_jeo_scripts() {
+
+  // Register and enqueue scripts here
+
+  // Enqueue child theme JEO related scripts
+  //wp_enqueue_script('jeo-blank-jeo-scripts', get_stylesheet_directory_uri() . '/js/jeo-scripts.js', array('jquery') , '0.0.1');
+
+  // Enqueue child theme main CSS
+  wp_enqueue_style('jeo-blank-styles', get_stylesheet_directory_uri() . '/css/main.css');
+
+}
+add_action('jeo_enqueue_scripts', 'jeo_blank_jeo_scripts', 20);
+
+// Hook scripts after JEO Marker scripts has been initialized
+function jeo_blank_markers_scripts() {
+
+  // Register and enqueue scripts here
+  //wp_enqueue_script('jeo-blank-jeo-markers-scripts', get_stylesheet_directory_uri() . '/js/jeo-markers-scripts.js', array('jquery') , '0.0.1');
+
+}
+add_action('jeo_markers_enqueue_scripts', 'jeo_blank_markers_scripts', 20);
+
+// Filter to change posts GeoJSON data (also changes the GeoJSON API output)
+function jeo_blank_marker_data($data, $post) {
+
+  // Change $data here
+
+  return $data;
+}
+add_filter('jeo_marker_data', 'jeo_blank_marker_data', 10, 2);
+
+// Filter to change GeoJSON response
+function jeo_blank_markers_data($data, $query) {
+
+  // Change $data here
+
+  return $data;
+}
+add_filter('jeo_markers_data', 'jeo_blank_markers_data', 10, 2);
+
+// Filter to programatically change map data
+function jeo_blank_map_data($data, $map) {
+
+  // Change $data here
+
+  return $data;
+}
+add_filter('jeo_map_data', 'jeo_blank_map_data', 10, 2);
+
+function jeo_themeblank_scripts() {
+
+        /* Chosen */
+	wp_register_script('chosen', get_stylesheet_directory_uri() . '/lib/chosen.jquery.min.js', array('jquery'), '1.0.0');
+
+	wp_register_script('jquery-isotope', get_stylesheet_directory_uri() . '/lib/jquery.isotope.min.js', array('jquery'), '1.5.25');
+
+	wp_register_script('jeo-site', get_stylesheet_directory_uri() . '/js/site.js', array('jquery', 'jquery-isotope'));
+
+	// styles
+        // Submit CSS.
+ //       wp_register_style('submit_story_css', get_template_directory_uri() . '/css/submit_story.css', array('jeo-skeleton', 'jeo-lsf', 'font-opensans'), '0.0.3')
+        // Parche para el boton de enviar del dataset.
+        wp_register_style('parche_jose_css', get_stylesheet_directory_uri() . '/css/parche_jose.css');
+        // Submit JS.
+        wp_register_script('submit-story', get_stylesheet_directory_uri() . '/js/submit-story.js', array('jquery'), '0.1.1');
+
+        wp_localize_script('submit-story', 'cartochaco_submit', array(
+		'ajaxurl' => admin_url('admin-ajax.php'),
+		'success_label' => __('Success! Thank you, your story will be reviewed by one of our editors and soon will be online.', 'jeo'),
+		'redirect_label' => __('You\'re being redirect to the home page in 4 seconds.', 'jeo'),
+		'home' => home_url('/'),
+		'error_label' => __('Oops, please try again in a few minutes.', 'jeo')
+	));
+
+}
+add_action('wp_enqueue_scripts', 'jeo_themeblank_scripts', 5);
+
+function jeo_enqueue_themeblank_scripts() {
+
+//        if(wp_style_is('submit_story_css', 'registered'))
+//		wp_enqueue_style('submit_story_css');
+
+        // Parche para el boton de enviar del dataset.
+        if(wp_style_is('parche_jose_css', 'registered'))
+		wp_enqueue_style('parche_jose_css');
+
+        if(wp_script_is('submit-story', 'registered'))
+		wp_enqueue_script('submit-story');
+
+}
+add_action('wp_enqueue_scripts', 'jeo_enqueue_themeblank_scripts', 12);
+
+
+// adding google material-desing icons set
+function md_icons_link() {
+    echo '<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">' . "\n";
 
 	// text domain
-	load_theme_textdomain('jeo', get_template_directory() . '/languages');
+	//load_child_theme_textdomain('jeo-blank', get_stylesheet_directory() . '/languages');
 
-	register_nav_menus(array(
-		'header_menu' => __('Header menu', 'jeo'),
-		'footer_menu' => __('Footer menu', 'jeo')
-	));
+}
+add_action( 'wp_head', 'md_icons_link' );
+
+
+
+
+
+// Geocode box.
+include(STYLESHEETPATH . '/inc/geocode-box.php');
+
+// Submit story.
+include(STYLESHEETPATH . '/inc/submit-story.php');
+
+
+
+// Remove page from search result.
+function cartochaco_remove_page_from_search($query) {
+	if($query->is_search) {
+		$query->set('post_type', 'post');
+	}
+	return $query;
+}
+add_filter('pre_get_posts', 'cartochaco_remove_page_from_search');
+
+// Metaboxes.
+include(STYLESHEETPATH . '/inc/metaboxes/metaboxes.php');
+
+// Register taxonomies.
+include(STYLESHEETPATH . '/inc/taxonomies.php');
+
+// Taxonomy meta.
+include(STYLESHEETPATH . '/inc/taxonomies-meta.php');
+
+
+function cartochaco_before_embed() {
+	remove_action('wp_footer', 'cartochaco_submit');
+	remove_action('wp_footer', 'cartochaco_geocode_box');
+}
+add_action('jeo_before_embed', 'cartochaco_before_embed');
+
+function cartochaco_embed_type($post_types) {
+	if(get_query_var('embed')) {
+		$post_types = 'map';
+	}
+	return $post_types;
+}
+add_filter('jeo_featured_map_type', 'cartochaco_embed_type');
+
+
+/*
+ * Advanced Custom Fields.
+ */
+if(!class_exists('Acf')) {
+	function cartochaco_acf_dir() {
+		return get_stylesheet_directory_uri() . '/inc/acf/';
+	}
+	add_filter('acf/helpers/get_dir', 'cartochaco_acf_dir');
+
+	function cartochaco_acf_date_time_picker_dir() {
+		return cartochaco_acf_dir() . '/add-ons/acf-field-date-time-picker/';
+	}
+	add_filter('acf/add-ons/date-time-picker/get_dir', 'cartochaco_acf_date_time_picker_dir');
+
+	function cartochaco_acf_repeater_dir() {
+		return cartochaco_acf_dir() . '/add-ons/acf-repeater/';
+	}
+	add_filter('acf/add-ons/repeater/get_dir', 'cartochaco_acf_repeater_dir');
+
+	define('ACF_LITE', true);
+	require_once(STYLESHEETPATH . '/inc/acf/acf.php');
+}
+
+
+/*
+ * Datasets.
+ */
+include(STYLESHEETPATH . '/inc/datasets.php');
+
+/*
+ * Reports.
+ */
+include(STYLESHEETPATH . '/inc/reports.php');
+
+function jeoblank_setup() {
+	add_theme_support('post-thumbnails');
+	add_image_size('post-thumb', 360, 121, true);
+	add_image_size('map-thumb', 200, 200, true);
+
+	// text domain
+
+	load_theme_textdomain('jeo', get_stylesheet_directory() . '/languages');
+
+	load_child_theme_textdomain('jeo-blank', get_stylesheet_directory() . '/languages');
 
 	//sidebars
 	register_sidebar(array(
-		'name' => __('Post sidebar', 'jeo'),
-		'id' => 'post',
-		'before_title' => '<h2 class="widget-title">',
-		'after_title' => '</h2>'
+		'name' => __('Main widgets', 'jeo'),
+		'id' => 'main-sidebar',
+		'description' => __('Widgets used on front and inside pages.', 'jeo'),
+		'before_widget' => '<div class="four columns row">',
+		'after_widget' => '</div>',
+		'before_title' => '<h3>',
+		'after_title' => '</h3>'
 	));
-	register_sidebar(array(
-		'name' => __('General sidebar', 'jeo'),
-		'id' => 'general',
-		'before_title' => '<h2 class="widget-title">',
-		'after_title' => '</h2>'
-	));
-	register_sidebar(array(
-		'name' => __('Front page', 'jeo'),
-		'id' => 'front_page',
-		'before_title' => '<h2 class="widget-title">',
-		'after_title' => '</h2>'
-	));
-
 }
-add_action('after_setup_theme', 'jeo_setup');
+add_action('after_setup_theme', 'jeoblank_setup');
 
-function jeo_theme_scripts() {
-	// styles
-	wp_register_style('jeo-lsf', get_template_directory_uri() . '/css/lsf.css');
-	wp_register_style('jeo-base', get_template_directory_uri() . '/css/base.css', array(), '1.2');
-	wp_register_style('jeo-skeleton', get_template_directory_uri() . '/css/skeleton.css', array('jeo-base'), '1.2');
-	wp_register_style('font-opensans', '//fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800');
-	wp_register_style('jeo-main', get_template_directory_uri() . '/css/main.css', array('jeo-skeleton', 'jeo-lsf', 'font-opensans'), '0.0.3');
-
-	wp_register_script('jquery-isotope', get_template_directory_uri() . '/lib/jquery.isotope.min.js', array('jquery'), '1.5.25');
-
-	wp_register_script('jeo-site', get_template_directory_uri() . '/js/site.js', array('jquery', 'jquery-isotope'));
+/*
+ * Para mostrar una cantidad determinada de dataset por pagina.
+ */
+/*function dataset_posts_per_page($query) {
+    if($query->query_vars['post_type'] == 'dataset'){
+        $query->query_vars['posts_per_page'] = 1;
+    }
+    return $query;
 }
-add_action('wp_enqueue_scripts', 'jeo_theme_scripts', 5);
+if (!is_admin() ) add_filter('pre_get_posts', 'dataset_posts_per_pageâ€™);*/
 
-function jeo_enqueue_theme_scripts() {
-	if(wp_style_is('jeo-main', 'registered'))
-		wp_enqueue_style('jeo-main');
 
-	if(wp_script_is('jeo-site', 'registered'))
-		wp_enqueue_script('jeo-site');
-
-	 if (is_singular())
-	 	wp_enqueue_script( "comment-reply" );
-
-}
-add_action('wp_enqueue_scripts', 'jeo_enqueue_theme_scripts', 12);
-
-function jeo_flush_rewrite() {
-	global $pagenow;
-	if(is_admin() && $_REQUEST['activated'] && $pagenow == 'themes.php') {
-		global $wp_rewrite;
-		$wp_rewrite->init();
-		$wp_rewrite->flush_rules();
-	}
-}
-add_action('init', 'jeo_flush_rewrite');
-
-function jeo_comment( $comment, $args, $depth ) {
-	$GLOBALS['comment'] = $comment;
-	switch ( $comment->comment_type ) :
-		case 'pingback' :
-		case 'trackback' :
-			// Display trackbacks differently than normal comments.
-			?>
-			<li <?php comment_class(); ?> id="comment-<?php comment_ID(); ?>">
-				<p><?php _e( 'Pingback:', 'humus' ); ?> <?php comment_author_link(); ?> <?php edit_comment_link( __( '(Edit)', 'humus' ), '<span class="edit-link">', '</span>' ); ?></p>
-			</li>
-			<?php
-		break;
-		default :
-		// Proceed with normal comments.
-		global $post;
-	?>
-	<li <?php comment_class('row'); ?> id="li-comment-<?php comment_ID(); ?>">
-		<article id="comment-<?php comment_ID(); ?>">
-			<header class="comment-header clearfix">
-				<?php echo get_avatar($comment, 60); ?>
-			</header>
-			<div class="comment-meta">
-				<span class="comment-author">
-					<?php
-					printf( '<cite class="fn">%1$s</cite>',
-						get_comment_author_link()
-					);
-					?>
-				</span> |
-				<span class="comment-date">
-					<?php
-					printf( '<a href="%1$s"><time datetime="%2$s">%3$s</time></a>',
-						esc_url( get_comment_link( $comment->comment_ID ) ),
-						get_comment_time( 'c' ),
-						/* translators: 1: date, 2: time */
-						sprintf( __( '%1$s at %2$s', 'humus' ), get_comment_date(), get_comment_time() )
-					);
-					?>
-				</span>
-				<?php edit_comment_link( __( 'Edit', 'humus' ), ' | <span class="comment-edit-link">', '</span>'); ?>
-			</div>
-			<div class="comment-content-area">
-				<?php if ( '0' == $comment->comment_approved ) : ?>
-					<p class="comment-awaiting-moderation"><?php _e( 'Your comment is awaiting moderation.', 'humus' ); ?></p>
-				<?php endif; ?>
-
-				<section class="comment-content">
-					<?php comment_text(); ?>
-				</section><!-- .comment-content -->
-
-				<div class="reply">
-					<?php comment_reply_link( array_merge( $args, array('reply_text' => __( 'Reply', 'humus' ), 'depth' => $depth, 'max_depth' => $args['max_depth'] ) ) ); ?>
-				</div><!-- .reply -->
-			</div>
-		</article><!-- #comment-## -->
-	<?php
-		break;
-	endswitch; // end comment_type check
-}
 ?>

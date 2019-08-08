@@ -29,7 +29,7 @@
 			this._layers.status = [];
 			_.each(this._map.conf.layers, function(layer) {
 				self._layers.status.push({
-					ID: layer.ID,
+					id: layer.layerID,
 					on: true
 				});
 			});
@@ -55,8 +55,8 @@
 					if(layer.first)
 						attrs = 'class="active"';
 					else
-						self._disableLayer(layer.ID);
-					list += '<li data-layer="' + layer.ID + '" ' + attrs + '>' + layer.title + '</li>';
+						self._disableLayer(layer.id);
+					list += '<li data-layer="' + layer.id + '" ' + attrs + '>' + layer.title + '</li>';
 				});
 
 				this._swapWidget = '<ul class="swap-layers">' + list + '</ul>';
@@ -77,9 +77,9 @@
 					var attrs = 'class="active"';
 					if(layer.hidden) {
 						attrs = '';
-						self._disableLayer(layer.ID);
+						self._disableLayer(layer.id);
 					}
-					list += '<li data-layer="' + layer.ID + '" ' + attrs + '>' + layer.title + '</li>';
+					list += '<li data-layer="' + layer.id + '" ' + attrs + '>' + layer.title + '</li>';
 				});
 
 				this._switchWidget = '<ul class="switch-layers">' + list + '</ul>';
@@ -124,7 +124,7 @@
 
 			_.each(this._layers.swapLayers, function(swapLayer) {
 
-				if(swapLayer.ID == layer) {
+				if(swapLayer.id == layer) {
 
 					self._enableLayer(layer);
 
@@ -132,11 +132,11 @@
 
 				} else {
 
-					if(self._getStatus(swapLayer.ID).on) {
+					if(self._getStatus(swapLayer.id).on) {
 
-						self._disableLayer(swapLayer.ID);
+						self._disableLayer(swapLayer.id);
 
-						self._$.find('li[data-layer="' + swapLayer.ID + '"]').removeClass('active');
+						self._$.find('li[data-layer="' + swapLayer.id + '"]').removeClass('active');
 
 					}
 
@@ -149,7 +149,7 @@
 		_disableLayer: function(layer) {
 
 			this._layers.status[this._getStatusIndex(layer)] = {
-				ID: layer,
+				id: layer,
 				on: false
 			};
 
@@ -158,7 +158,7 @@
 		_enableLayer: function(layer) {
 
 			this._layers.status[this._getStatusIndex(layer)] = {
-				ID: layer,
+				id: layer,
 				on: true
 			};
 
@@ -172,14 +172,14 @@
 		},
 
 		_getStatus: function(layer) {
-			return _.find(this._layers.status, function(l) { return layer == l.ID; });
+			return _.find(this._layers.status, function(l) { return layer == l.id; });
 		},
 
 		_getStatusIndex: function(layer) {
 
 			var index;
 			_.each(this._layers.status, function(l, i) {
-				if(layer == l.ID)
+				if(layer == l.id)
 					index = i;
 			});
 			return index;
@@ -191,7 +191,7 @@
 			var activeLayers = [];
 			_.each(this._layers.status, function(layer) {
 				if(layer.on) {
-					var actualLayer = _.find(self._map.conf.layers, function(l) { return l.ID == layer.ID; });
+					var actualLayer = _.find(self._map.conf.layers, function(l) { return l.layerID == layer.id; });
 					activeLayers.push(actualLayer);
 				}
 			});

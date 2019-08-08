@@ -142,7 +142,7 @@ class JEO_Markers {
 		wp_register_script('leaflet-markerclusterer', get_template_directory_uri() . '/lib/leaflet/leaflet.markercluster.js', array('jeo'), '0.2');
 		wp_register_style('leaflet-markerclusterer', get_template_directory_uri() . '/lib/leaflet/MarkerCluster.Default.css', array(), '0.2');
 
-		/*
+		/* 
 		 * Clustering
 		 */
 		if($this->use_clustering()) {
@@ -156,7 +156,7 @@ class JEO_Markers {
 
 		}
 
-		wp_register_script('jeo.markers', $this->directory_uri . '/js/markers.js', array('jeo', 'underscore'), '0.2.19');
+		wp_register_script('jeo.markers', $this->directory_uri . '/js/markers.js', array('jeo', 'underscore'), '0.2.18');
 	}
 
 	function setup_query_vars() {
@@ -183,7 +183,6 @@ class JEO_Markers {
 			$marker_query->parse_query();
 			$query = $marker_query->query_vars;
 			$query['map_id'] = $post->ID;
-			unset($query['page_id']);
 		}
 
 		if($wp_query->get('map_id') && !$wp_query->get('p')) {
@@ -294,7 +293,7 @@ class JEO_Markers {
 					$geojson = $this->get_geojson();
 
 					if($geojson) {
-						$data['features'][$i] = $geojson;
+						$data['features'][$i] = $this->get_geojson();
 						$i++;
 					}
 				}
@@ -552,7 +551,7 @@ class JEO_Markers {
 		} else {
 			$geometry = array();
 			$geometry['type'] = 'Point';
-			$geometry['coordinates'] = array_map('floatval', $coordinates);
+			$geometry['coordinates'] = $coordinates;
 		}
 		return apply_filters('jeo_marker_geometry', $geometry, $post);
 	}
@@ -573,7 +572,7 @@ class JEO_Markers {
 		$lon = get_post_meta($post_id, 'geocode_longitude', true);
 
 		if($lat && is_numeric($lat) && $lon && is_numeric($lon))
-			$coordinates = array(floatval($lon), floatval($lat));
+			$coordinates = array($lon, $lat);
 		else
 			$coordinates = false;
 

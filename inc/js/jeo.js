@@ -1,7 +1,3 @@
-if(jeo_settings.mapbox_access_token) {
-	L.mapbox.accessToken = jeo_settings.mapbox_access_token;
-}
-
 var jeo = {};
 
 (function($) {
@@ -37,13 +33,13 @@ var jeo = {};
 		} else {
 			return $(document).ready(_init);
 		}
-
+		
 	};
 
 	jeo.maps = {};
 
 	jeo.build = function(conf, callback) {
-
+		
 		/*
 		 * Map settings
 		 */
@@ -118,11 +114,14 @@ var jeo = {};
 				map.scrollWheelZoom.disable();
 		}
 
-		/*
+		/* 
 		 * Legends
 		 */
+		if(conf.legend) {
+			map.legendControl.addLegend(conf.legend);
+		}
 		if(conf.legend_full)
-			jeo.enableDetails(map, conf.legend_full);
+			jeo.enableDetails(map, conf.legend, conf.legend_full);
 
 		/*
 		 * Fullscreen
@@ -166,95 +165,75 @@ var jeo = {};
 
 		var parsedLayers = [];
 
+		var mapBoxComposite = 1;
+		var mapBoxCompositionAmount = 0;
+
 		$.each(layers, function(i, layer) {
 
-			if(layer.type == 'cartodb' && layer.cartodb_type == 'viz') {
+			var layerID = layer.layerID;
+			if(typeof layerID == 'undefined')
+				layerID = layer;
 
-				var cdbOpts = {
-					legends: false
-				};
+			if(layer.layerType == 'mapbox' || layerID.indexOf('http') === -1) {
+                
+                layer.mapboxComposition = mapBoxComposite;
 
-				if(jeo_localization.ssl)
-					cdbOpts.https = true;
+                if(mapBoxCompositionAmount >= 16) {
+                    mapBoxCompositionAmount = 0;
+                    mapBoxComposite++;
+                }
 
-				var pLayer = cartodb.createLayer(map, layer.cartodb_viz_url, cdbOpts);
+			}
+            
+            parsedLayers.push(layer);
 
-				if(layer.legend) {
-					pLayer._legend = layer.legend;
-				}
+		});
 
-				parsedLayers.push(pLayer);
+		// create tileLayers
 
-			} else if(layer.type == 'mapbox') {
+		var layers = [];
+		$.each(parsedLayers, function(i, layer) {
 
-				var pLayer = L.mapbox.tileLayer(layer.mapbox_id);
+			layerID = layer.layerID;
+			if(typeof layerID == 'undefined')
+				layerID = layer;
 
-				if(layer.legend) {
-					pLayer._legend = layer.legend;
-				}
+			if(layer.layerType == 'cartodb') {
 
-				parsedLayers.push(pLayer);
-				parsedLayers.push(L.mapbox.gridLayer(layer.mapbox_id));
+				layers.push(cartodb.createLayer(map, layer.layerID));
 
-			} else if(layer.type == 'tilelayer') {
+			} else if(layerID.indexOf('http') === -1 || layer.layerType == 'mapbox') {
 
-				var options = {};
+				layers.push(L.mapbox.tileLayer(layerID));
+				layers.push(L.mapbox.gridLayer(layerID));
 
-				if(layer.tms)
-					options.tms = true;
+			} else {
 
-				var pLayer = L.tileLayer(layer.tile_url, options);
-
-				if(layer.legend) {
-					pLayer._legend = layer.legend;
-				}
-
-				parsedLayers.push(pLayer);
-
-				if(layer.utfgrid_url && layer.utfgrid_template) {
-
-					parsedLayers.push(L.mapbox.gridLayer({
-						"name": layer.title,
-						"tilejson": "2.0.0",
-						"scheme": "xyz",
-						"template": layer.utfgrid_template,
-						"grids": [layer.utfgrid_url.replace('{s}', 'a')]
-					}));
-
-				}
+				layers.push(L.tileLayer(layerID));
 
 			}
 
 		});
 
-		return parsedLayers;
+		return layers;
 	};
 
 	jeo.loadLayers = function(map, parsedLayers) {
 
-		for(var key in map.legendControl._legends) {
-			if(key.indexOf('map-details-link') == -1)
-				map.legendControl.removeLegend(key);
-		}
-
-		if(map.coreLayers) {
-			for(var key in map.coreLayers._layers) {
-				map.coreLayers.removeLayer(key);
-			}
-		} else {
+		if(map.coreLayers)
+			map.coreLayers.clearLayers();
+		else {
 			map.coreLayers = new L.layerGroup();
 			map.addLayer(map.coreLayers);
 		}
 
 		$.each(parsedLayers, function(i, layer) {
-			if(layer._legend) {
-				map.legendControl.addLegend(layer._legend);
-			}
 			layer.addTo(map.coreLayers);
 			if(layer._tilejson) {
 				map.addControl(L.mapbox.gridControl(layer));
 			}
 		});
+
 
 		return map.coreLayers;
 	}
@@ -274,24 +253,29 @@ var jeo = {};
 		newConf.filteringLayers.swapLayers = [];
 
 		$.each(conf.layers, function(i, layer) {
-			newConf.layers.push(_.clone(layer));
-			if(layer.filtering == 'switch') {
-				var switchLayer = {
-					ID: layer.ID,
-					title: layer.title
-				};
-				if(layer.hidden)
-					switchLayer.hidden = true;
-				newConf.filteringLayers.switchLayers.push(switchLayer);
-			}
-			if(layer.filtering == 'swap') {
-				var swapLayer = {
-					ID: layer.ID,
-					title: layer.title
-				};
-				if(layer.first_swap)
-					swapLayer.first = true;
-				newConf.filteringLayers.swapLayers.push(swapLayer);
+			newConf.layers.push({
+				layerID: layer.id,
+				layerType: layer.type
+			});
+			if(layer.opts) {
+				if(layer.opts.filtering == 'switch') {
+					var switchLayer = {
+						id: layer.id,
+						title: layer.title
+					};
+					if(layer.switch_hidden)
+						switchLayer.hidden = true;
+					newConf.filteringLayers.switchLayers.push(switchLayer);
+				}
+				if(layer.opts.filtering == 'swap') {
+					var swapLayer = {
+						id: layer.id,
+						title: layer.title
+					};
+					if(conf.swap_first_layer == layer.id)
+						swapLayer.first = true;
+					newConf.filteringLayers.swapLayers.push(swapLayer);
+				}
 			}
 		});
 
@@ -320,16 +304,19 @@ var jeo = {};
 
 		if(conf.legend_full)
 			newConf.legend_full = conf.legend_full;
-
+		
 		return newConf;
 	}
 
 	/*
 	 * Legend page (map details)
 	 */
-	jeo.enableDetails = function(map, full) {
+	jeo.enableDetails = function(map, legend, full) {
+		if(typeof legend === 'undefined')
+			legend = '';
 
-		map.conf.legend_full_content = '<span class="map-details-link">' + jeo_localization.more_label + '</span>';
+		map.legendControl.removeLegend(legend);
+		map.conf.legend_full_content = legend + '<span class="map-details-link">' + jeo_localization.more_label + '</span>';
 		map.legendControl.addLegend(map.conf.legend_full_content);
 
 		var isContentMap = map.$.parents('.content-map').length;
@@ -365,6 +352,7 @@ var jeo = {};
 
 	jeo.runCallbacks = function(name, args) {
 		if(!jeo.callbacks[name]) {
+			console.log('A JEO callback tried to run, but wasn\'t initialized');
 			return false;
 		}
 		if(!jeo.callbacks[name].length)
