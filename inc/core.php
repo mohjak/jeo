@@ -119,7 +119,7 @@ class JEO {
 		/*
 		 * Local
 		 */
-		wp_enqueue_script('jeo', get_template_directory_uri() . '/inc/js/jeo.js', array('mapbox-js', 'underscore', 'jquery'), '0.4.5');
+		wp_enqueue_script('jeo', get_template_directory_uri() . '/inc/js/jeo.js', array('mapbox-js', 'underscore', 'jquery'), '0.4.3');
 
 		wp_enqueue_script('jeo.groups', get_template_directory_uri() . '/inc/js/groups.js', array('jeo'), '0.2.7');
 
@@ -297,13 +297,12 @@ class JEO {
 		global $wpdb;
 
 		$map_id = $this->map->ID;
-
 		$join = "
 			LEFT JOIN {$wpdb->postmeta} AS m_has_maps ON ({$wpdb->posts}.ID = m_has_maps.post_id AND m_has_maps.meta_key = 'has_maps')
 			INNER JOIN {$wpdb->postmeta} m_maps ON ({$wpdb->posts}.ID = m_maps.post_id)
 			";
 
-
+                $where = null;
 		// MAP
 		if(get_post_type($map_id) == 'map') {
 
@@ -353,7 +352,9 @@ class JEO {
 
 		// hooks
 		$join = apply_filters('jeo_posts_clauses_join', $join, $clauses, $query);
-		$where = apply_filters('jeo_posts_clauses_where', $where, $clauses, $query);
+		if($where != null) {
+  		    $where = apply_filters('jeo_posts_clauses_where', $where, $clauses, $query);
+		}
 		$groupby = apply_filters('jeo_posts_clauses_groupby', $groupby, $clauses, $query);
 
 		$clauses['join'] .= $join;
@@ -400,7 +401,10 @@ class JEO {
 	function the_post_map() {
 		if(!$this->map) {
 			global $post;
-			$post_maps_ids = get_post_meta($post->ID, 'maps');
+			$post_maps_ids = array();
+			if ($post !== NULL) {
+				$post_maps_ids = get_post_meta($post->ID, 'maps');
+			}
 			if($post_maps_ids)
 				$map = get_post(array_shift($post_maps_ids));
 			else
@@ -444,11 +448,11 @@ class JEO {
 
 	function featured($post_type = false) {
 		$post_type = $post_type ? $post_type : $this->featured_map_type();
-
+		$featured_id = null;
 		if(isset($this->options['front_page']) && $this->options['front_page']['featured_map'])
 			$featured_id = $this->options['front_page']['featured_map'];
 
-		if(!$featured_id) {
+		if($featured_id !== null && !$featured_id) {
 			$featured = $this->latest($post_type);
 		} else {
 			$featured = get_post($featured_id);
@@ -509,11 +513,19 @@ class JEO {
 
 	// display featured map
 	function get_featured($main_map = true, $force = false) {
-		$featured_id = $this->featured()->ID;
-		if(!$featured_id && current_user_can('edit_posts')) {
+		// var_dump($this->featured()); die;
+		$featured_id = NULL;
+		if ($this->featured() !== NULL) {
+			$featured_id = $this->featured()->ID;
+		}
+
+		if($featured_id !== NULL && !$featured_id && current_user_can('edit_posts')) {
 			return $this->create_map_message();
 		}
-		return $this->get_map($this->featured()->ID, $main_map, $force);
+
+		if ($this->featured() !== NULL) {
+			return $this->get_map($this->featured()->ID, $main_map, $force);
+		}
 	}
 
 	function create_map_message() {
@@ -705,6 +717,7 @@ class JEO {
 	}
 }
 
+
 $jeo = new JEO();
 
 require_once(get_template_directory() . '/inc/layers.php');
@@ -726,36 +739,49 @@ include_once(get_template_directory() . '/inc/wp-api.php');
  * JEO functions api
  */
 
+
 function jeo_get_options() {
 	global $jeo;
-	return $jeo->get_options();
+	if ($jeo !== NULL) {
+		return $jeo->get_options();
+	}
 }
 
 function jeo_get_mapbox_access_token() {
 	global $jeo;
-	return $jeo->mapbox_access_token();
+	if ($jeo !== NULL) {
+		return $jeo->mapbox_access_token();
+	}
 }
 
 function jeo_the_query($query) {
 	global $jeo;
-	return $jeo->the_query($query);
+	if ($jeo !== NULL) {
+		return $jeo->the_query($query);
+	}
 }
 
 // mapped post types
 function jeo_get_mapped_post_types() {
 	global $jeo;
-	return $jeo->mapped_post_types();
+	if ($jeo !== NULL) {
+		return $jeo->mapped_post_types();
+	}
 }
 
 function jeo_set_map($post) {
 	global $jeo;
-	return $jeo->set_map($post);
+	if ($jeo !== NULL) {
+		return $jeo->set_map($post);
+	}
 }
 
 // get the main map post
 function jeo_the_map() {
 	global $jeo;
-	return $jeo->map;
+	if ($jeo !== NULL) {
+		return $jeo->map;
+	}
 }
 
 

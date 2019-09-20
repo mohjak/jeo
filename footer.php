@@ -7,7 +7,7 @@
 		</div>
 		<div class="five columns">
 			<div class="credits">
-				<p><?php printf(__('This website is built on <a href="%s" target="_blank" rel="external">WordPress</a> using the <a href="%s" target="_blank" rel="external">JEO Beta</a> theme', 'jeo'), 'http://wordpress.org', 'http://jeo.cardume.art.br/'); ?></p>
+				<p><?php printf(__('This website is built on <a href="%1$s" target="_blank" rel="external">WordPress</a> using the <a href="%2$s" target="_blank" rel="external">JEO Beta</a> theme', 'jeo'), 'http://wordpress.org', 'http://jeo.cardume.art.br/'); ?></p>
 			</div>
 		</div>
 	</div>
