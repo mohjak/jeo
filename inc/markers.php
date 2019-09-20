@@ -171,9 +171,7 @@ class JEO_Markers {
 	function query() {
 		global $wp_query;
 		$marker_query = apply_filters('jeo_marker_base_query', $wp_query);
-
 		$query = $marker_query->query_vars;
-
 		if(isset($query['suppress_filters']))
 			unset($query['suppress_filters']);
 
@@ -251,7 +249,6 @@ class JEO_Markers {
 	}
 
 	function get_data($query = false) {
-
 		$query = $query ? $query : $_REQUEST['query'];
 
 		if(!isset($query['singular_map']) || $query['singular_map'] !== true) {
@@ -675,8 +672,13 @@ class JEO_Markers {
 
 		if(is_int($post_id) && get_post_type($post_id) == 'revision')
 			return false;
+			/*
+		var_dump(eo_get_mapped_post_types());
+		die;
+		*/
+		$jeo_get_mapped_post_types = jeo_get_mapped_post_types();
 
-		if(is_int($post_id) && in_array(get_post_type($post_id), jeo_get_mapped_post_types())) {
+		if($post_id && is_int($post_id) && $jeo_get_mapped_post_types && is_array($jeo_get_mapped_post_types) && in_array(get_post_type($post_id), jeo_get_mapped_post_types())) {
 			foreach($keys as $key) {
 				delete_post_meta($post_id, $key);
 			}
@@ -686,7 +688,6 @@ class JEO_Markers {
 				$wpdb->query($wpdb->prepare("DELETE FROM $wpdb->postmeta WHERE meta_key = '{$key}'", null));
 			}
 		}
-
 	}
 
 	function geojson_cache_hooks() {
@@ -715,7 +716,7 @@ class JEO_Markers {
 
 	function geojson_cache_button_action() {
 		if(isset($_REQUEST['jeo_clear_geojson']) && is_super_admin()) {
-			$this->clean_geojson();
+			// $this->clean_geojson();
 			add_action('admin_notices', array($this, 'geojson_cache_clean_message'));
 		}
 	}
@@ -734,95 +735,133 @@ require_once($jeo_markers->directory . '/marker-icons.php');
 
 function jeo_geocode_box($post = false) {
 	global $jeo_markers;
-	return $jeo_markers->geocode_box($post);
+	if ($jeo_markers !== NULL) {
+		return $jeo_markers->geocode_box($post);
+	}
 }
 
 function jeo_geocode_save($post_id = false) {
 	global $jeo_markers;
-	return $jeo_markers->geocode_save($post_id);
+	if ($jeo_markers !== NULL) {
+		return $jeo_markers->geocode_save($post_id);
+	}
 }
 
 function jeo_get_geocode_service() {
 	global $jeo_markers;
-	return $jeo_markers->geocode_service;
+	if ($jeo_markers !== NULL) {
+		return $jeo_markers->geocode_service;
+	}
 }
 
 function jeo_get_gmaps_api_key() {
 	global $jeo_markers;
-	return $jeo_markers->gmaps_api_key;
+	if ($jeo_markers !== NULL) {
+		return $jeo_markers->gmaps_api_key;
+	}
 }
 
 function jeo_use_clustering() {
 	global $jeo_markers;
-	return $jeo_markers->use_clustering();
+	if ($jeo_markers !== NULL) {
+		return $jeo_markers->use_clustering();
+	}
 }
 
 function jeo_use_marker_extent() {
 	global $jeo_markers;
-	return $jeo_markers->use_extent();
+	if ($jeo_markers !== NULL) {
+		return $jeo_markers->use_extent();
+	}
 }
 
 function jeo_marker_extent_default_zoom() {
 	global $jeo_markers;
-	return $jeo_markers->extent_default_zoom();
+	if ($jeo_markers !== NULL) {
+		return $jeo_markers->extent_default_zoom();
+	}
 }
 
 function jeo_get_markers_limit() {
 	global $jeo_markers;
-	return $jeo_markers->get_limit();
+	if ($jeo_markers !== NULL) {
+		return $jeo_markers->get_limit();
+	}
 }
 
 function jeo_get_marker_latitude($post_id = false) {
 	global $jeo_markers;
-	return $jeo_markers->get_latitude($post_id);
+	if ($jeo_markers !== NULL) {
+		return $jeo_markers->get_latitude($post_id);
+	}
 }
 
 function jeo_get_marker_longitude($post_id = false) {
 	global $jeo_markers;
-	return $jeo_markers->get_longitude($post_id);
+	if ($jeo_markers !== NULL) {
+		return $jeo_markers->get_longitude($post_id);
+	}
 }
 
 function jeo_get_marker_bubble($post_id = false) {
 	global $jeo_markers;
-	return $jeo_markers->get_bubble();
+	if ($jeo_markers !== NULL) {
+		return $jeo_markers->get_bubble();
+	}
 }
 
 function jeo_get_marker_icon() {
 	global $jeo_markers;
-	return $jeo_markers->get_icon();
+	if ($jeo_markers !== NULL) {
+		return $jeo_markers->get_icon();
+	}
 }
 
 function jeo_get_marker_class() {
 	global $jeo_markers;
-	return $jeo_markers->get_class();
+	if ($jeo_markers !== NULL) {
+		return $jeo_markers->get_class();
+	}
 }
 
 function jeo_get_marker_properties() {
 	global $jeo_markers;
-	return $jeo_markers->get_properties();
+	if ($jeo_markers !== NULL) {
+		return $jeo_markers->get_properties();
+	}
 }
 
 function jeo_get_marker_geometry() {
 	global $jeo_markers;
-	return $jeo_markers->get_geometry();
+	if ($jeo_markers !== NULL) {
+		return $jeo_markers->get_geometry();
+	}
 }
 
 function jeo_get_marker_coordinates($post_id = false) {
 	global $jeo_markers;
-	return $jeo_markers->get_coordinates($post_id);
+	if ($jeo_markers !== NULL) {
+		return $jeo_markers->get_coordinates($post_id);
+	}
 }
 
 function jeo_get_marker_conf_coordinates($post_id = false) {
 	global $jeo_markers;
-	return $jeo_markers->get_conf_coordinates($post_id);
+	if ($jeo_markers !== NULL) {
+		return $jeo_markers->get_conf_coordinates($post_id);
+	}
 }
 
 function jeo_has_marker_location($post_id = false) {
 	global $jeo_markers;
-	return $jeo_markers->has_location($post_id);
+	if ($jeo_markers !== NULL) {
+		return $jeo_markers->has_location($post_id);
+	}
 }
 
 function jeo_get_post_geojson($post_id = false) {
 	global $jeo_markers;
-	return $jeo_markers->get_geojson($post_id);
+	if ($jeo_markers !== NULL) {
+		return $jeo_markers->get_geojson($post_id);
+	}
 }
