@@ -121,8 +121,11 @@ var jeo = {};
 		/*
 		 * Legends
 		 */
+		if(conf.legend) {
+			map.legendControl.addLegend(conf.legend);
+		}
 		if(conf.legend_full)
-			jeo.enableDetails(map, conf.legend_full);
+			jeo.enableDetails(map, conf.legend, conf.legend_full);
 
 		/*
 		 * Fullscreen
@@ -233,6 +236,7 @@ var jeo = {};
 	jeo.loadLayers = function(map, parsedLayers) {
 
 		for(var key in map.legendControl._legends) {
+			console.log(key);
 			if(key.indexOf('map-details-link') == -1)
 				map.legendControl.removeLegend(key);
 		}
@@ -327,9 +331,12 @@ var jeo = {};
 	/*
 	 * Legend page (map details)
 	 */
-	jeo.enableDetails = function(map, full) {
+	jeo.enableDetails = function(map, legend, full) {
+		if(typeof legend === 'undefined')
+			legend = '';
 
-		map.conf.legend_full_content = '<span class="map-details-link">' + jeo_localization.more_label + '</span>';
+		map.legendControl.removeLegend(legend);
+		map.conf.legend_full_content = legend + '<span class="map-details-link">' + jeo_localization.more_label + '</span>';
 		map.legendControl.addLegend(map.conf.legend_full_content);
 
 		var isContentMap = map.$.parents('.content-map').length;
