@@ -249,7 +249,7 @@ add_action('after_setup_theme', 'jeoblank_setup');
     }
     return $query;
 }
-if (!is_admin() ) add_filter('pre_get_posts', 'dataset_posts_per_pageâ€™);*/
+if (!is_admin() ) add_filter('pre_get_posts', 'dataset_posts_per_page');*/
 
 
 ?>

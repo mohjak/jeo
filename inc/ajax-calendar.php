@@ -11,28 +11,34 @@ Author URI: http://urbangiraffe.com
 class AJAX_Calendar_Widget extends WP_Widget {
 	var $category_ids = array();
 
-	function AJAX_Calendar_Widget() {
+	function __construct() {
 		$widget_ops  = array( 'classname' => 'ajax_calendar_widget', 'description' => __( 'AJAX Powered Calendar', 'ajax-calendar' ) );
 		$control_ops = array( 'width' => 300, 'height' => 300 );
 
-		$this->WP_Widget( 'ajax-calendar', __( 'AJAX Calendar', 'ajax-calendar' ), $widget_ops, $control_ops );
+		// by mohjak
+		$this->id_base = 'ajax-calendar';
+		$this->name = __( 'AJAX Calendar', 'ajax-calendar' );
+		$this->widget_options = $widget_ops;
+		$this->control_options = $control_ops;
+
+		// $this->WP_Widget( 'ajax-calendar', __( 'AJAX Calendar', 'ajax-calendar' ), $widget_ops, $control_ops );
 
 		add_action( 'template_redirect', array( &$this, 'template_redirect' ) );
 	}
-	
+
 	function template_redirect() {
 		if ( is_date() && isset( $_GET['ajax'] ) && $_GET['ajax'] == 'true' ) {
 			$settings = $this->get_settings();
 			$settings = $settings[$this->number];
-			
+
 			$instance     = wp_parse_args( $settings, array( 'title' => __( 'AJAX Calendar', 'ajax-calendar' ), 'category_id' => '' ) );
 			$this->category_ids = array_filter( explode( ',', $instance['category_id'] ) );
-			
+
 			echo $this->get_calendar();
 			die();
 		}
 	}
-	
+
 	/**
 	 * Display the widget
 	 *
